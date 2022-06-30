@@ -1,0 +1,10 @@
+[package]
+name = "noros"
+version = "0.0.1"
+authors = ["Bond_009 <bond.009@outlook.com>"]
+keywords = []
+repository = "https://github.com/Bond-009/noros"
+edition = "2021"
+
+[lib]
+crate-type = ["staticlib"]
