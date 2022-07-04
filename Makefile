@@ -1,11 +1,20 @@
 arch ?= x86_64
+linker ?= ld
+
 kernel := build/kernel-$(arch).bin
 iso := build/noros-$(arch).iso
-
 linker_script := src/arch/$(arch)/linker.ld
 grub_cfg := src/arch/$(arch)/grub.cfg
-assembly_source_files := $(wildcard src/arch/$(arch)/*.asm)
-assembly_object_files := $(patsubst src/arch/$(arch)/%.asm, build/arch/$(arch)/%.o, $(assembly_source_files))
+
+ifeq ($(arch), x86_64)
+	assembly_ext := asm
+else
+	assembly_ext := S
+endif
+
+assembly_source_files := $(wildcard src/arch/$(arch)/*.$(assembly_ext))
+assembly_object_files := $(patsubst src/arch/$(arch)/%.$(assembly_ext), build/arch/$(arch)/%.o, $(assembly_source_files))
+
 rust_os := target/$(arch)-unknown-none/debug/libnoros.a
 
 .PHONY: all clean run iso kernel
@@ -16,13 +25,27 @@ clean:
 	@rm -rf build
 	@cargo clean
 
+ifeq ($(arch), aarch64)
+run: $(kernel)
+	@qemu-system-$(arch) -M raspi3b -serial stdio -kernel $(kernel)
+else
 run: $(iso)
 	@qemu-system-$(arch) -cdrom $(iso)
+endif
 
 iso: $(iso)
 
 kernel:
 	@cargo build --target $(arch)-unknown-none
+
+# compile assembly files
+build/arch/$(arch)/%.o: src/arch/$(arch)/%.$(assembly_ext)
+	@mkdir -p $(shell dirname $@)
+ifeq ($(arch), aarch64)
+	@aarch64-elf-as -c $< -o $@
+else
+	@nasm -Wall -felf64 $< -o $@
+endif
 
 $(iso): $(kernel) $(grub_cfg)
 	@mkdir -p build/isofiles/boot/grub
@@ -32,10 +55,4 @@ $(iso): $(kernel) $(grub_cfg)
 	@rm -r build/isofiles
 
 $(kernel): kernel $(rust_os) $(assembly_object_files) $(linker_script)
-	@ld -n -T $(linker_script) -o $(kernel) \
-		$(assembly_object_files) $(rust_os)
-
-# compile assembly files
-build/arch/$(arch)/%.o: src/arch/$(arch)/%.asm
-	@mkdir -p $(shell dirname $@)
-	@nasm -Wall -felf64 $< -o $@
+	@$(linker) -n -T $(linker_script) -o $(kernel) $(assembly_object_files) $(rust_os)
