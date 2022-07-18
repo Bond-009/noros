@@ -1,5 +1,4 @@
 #![no_std]
-#![no_main]
 #![allow(dead_code)]
 
 mod arch;
@@ -8,6 +7,7 @@ mod lazy;
 mod prelude;
 mod sync;
 
+#[cfg(not(test))]
 use core::panic::PanicInfo;
 
 #[macro_export]
@@ -33,6 +33,7 @@ macro_rules! eprintln {
 }
 
 #[panic_handler]
+#[cfg(not(test))]
 fn panic(info: &PanicInfo) -> ! {
     eprintln!("{}", info);
     loop {}

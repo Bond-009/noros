@@ -57,7 +57,7 @@ pub struct Writer {
 
 impl Writer {
     pub fn new(buffer: &'static mut [ScreenChar], num_lines: usize, num_columns: usize) -> Self {
-        debug_assert!(buffer.len() == num_lines * num_columns);
+        debug_assert_eq!(buffer.len(), num_lines * num_columns);
 
         Self {
             num_columns,

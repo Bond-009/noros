@@ -1,3 +1,5 @@
+mod interrupt;
+
 use core::fmt::{Arguments, Write};
 use core::ptr;
 
@@ -6,6 +8,7 @@ use crate::sync::mutex::Mutex;
 use crate::lazy::OnceCell;
 use crate::prelude::*;
 
+// TODO: replace once lazy type is stabilized
 static WRITER: Mutex<OnceCell<Writer>> = Mutex::new(OnceCell::new());
 
 #[doc(hidden)]
@@ -36,5 +39,10 @@ pub extern "C" fn kernel_main() -> ! {
     WRITER.lock().set(writer.into()).unwrap();
 
     println!("Hello World!");
+
+    interrupt::init_idt();
+
+    println!("Interrupts set up");
+
     loop {}
 }
