@@ -183,5 +183,5 @@ pdp_table:
 pd_table:
     resb 4096
 stack_bottom:
-    resb 16 * 4096
+    resb 5 * 4096
 stack_top:

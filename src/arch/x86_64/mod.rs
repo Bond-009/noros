@@ -1,3 +1,4 @@
+mod gdt;
 mod interrupt;
 
 use core::fmt::{Arguments, Write};

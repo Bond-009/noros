@@ -183,9 +183,9 @@ struct ExceptionStackFrame {
 }
 
 #[no_mangle]
-extern "C" fn double_fault_handler() -> ! {
-    eprintln!("EXCEPTION: double fault");
-    loop { }
+extern "C" fn double_fault_handler(stack_frame: &ExceptionStackFrame, _error_code: u64) -> ! {
+    debug_assert_eq!(_error_code, 0);
+    panic!("EXCEPTION: double fault\n{:#?}", stack_frame);
 }
 
 // TODO: make type for error code

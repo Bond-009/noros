@@ -25,12 +25,15 @@ clean:
 	@rm -rf build
 	@cargo clean
 
+test:
+	@cargo test --target $(shell rustc -vV | sed -n 's/host: //p')
+
 ifeq ($(arch), aarch64)
 run: $(kernel)
 	@qemu-system-$(arch) -M raspi3b -serial stdio -kernel $(kernel)
 else
 run: $(iso)
-	@qemu-system-$(arch) -cdrom $(iso)
+	@qemu-system-$(arch) -monitor stdio -cdrom $(iso)
 endif
 
 iso: $(iso)
