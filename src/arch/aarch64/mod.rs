@@ -1,16 +1,23 @@
 use core::arch::asm;
+use core::fmt::Arguments;
 use core::ptr;
 
-#[repr(align(16))]
-struct MboxMessage {
-    data: [u32; 9]
+#[doc(hidden)]
+pub fn _print(_args: Arguments) {
+    write("print")
 }
+
+#[doc(hidden)]
+pub fn _eprint(_args: Arguments) {
+    write("error")
+}
+
+#[repr(align(16))]
+struct MboxMessage([u32; 9]);
 
 impl Default for MboxMessage {
     fn default() -> Self {
-        Self {
-            data: [9 * 4, 0, 0x38002, 12, 8, 2, 3000000, 0, 0]
-        }
+        Self([9 * 4, 0, 0x38002, 12, 8, 2, 3000000, 0, 0])
     }
 }
 
@@ -130,14 +137,14 @@ fn uart_init()
     // For Raspi3 and 4 the UART_CLOCK is system-clock dependent by default.
     // Set it to 3Mhz so that we can consistently set the baud rate
 
-        // UART_CLOCK = 30000000;
-        let mbox = MboxMessage::default();
-        let r: u32 = ((&mbox) as *const _ as u32 & !0xF) | 8;
-        // wait until we can talk to the VC
-        while (mmio_read(MBOX_STATUS) & 0x80000000) > 0 { }
-        // send our message to property channel and wait for the response
-        mmio_write(MBOX_WRITE, r);
-        while (mmio_read(MBOX_STATUS) & 0x40000000) > 0 || mmio_read(MBOX_READ) != r { }
+    // UART_CLOCK = 30000000;
+    let mbox = MboxMessage::default();
+    let r: u32 = ((&mbox) as *const _ as u32 & !0xF) | 8;
+    // wait until we can talk to the VC
+    while (mmio_read(MBOX_STATUS) & 0x80000000) > 0 { }
+    // send our message to property channel and wait for the response
+    mmio_write(MBOX_WRITE, r);
+    while (mmio_read(MBOX_STATUS) & 0x40000000) > 0 || mmio_read(MBOX_READ) != r { }
 
     // Divider = 3000000 / (16 * 115200) = 1.627 = ~1.
     mmio_write(UART0_IBRD, 1);
@@ -172,9 +179,11 @@ pub extern fn kernel_main(_dtb_ptr32: u64, _x1: u64, _x2: u64, _x3: u64) {
     }
 
     uart_init();
-    write("Hello Rust Kernel world!");
-
+    loop {
+        write("Hello Rust Kernel world!\n");
+    }
+/*
     loop {
         writec(getc())
-    }
+    }*/
 }

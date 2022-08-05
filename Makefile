@@ -59,3 +59,6 @@ $(iso): $(kernel) $(grub_cfg)
 
 $(kernel): kernel $(rust_os) $(assembly_object_files) $(linker_script)
 	@$(linker) -n -T $(linker_script) -o $(kernel) $(assembly_object_files) $(rust_os)
+ifeq ($(arch), aarch64)
+	@aarch64-elf-objcopy $(kernel) -O binary build/kernel8.img
+endif
