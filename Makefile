@@ -1,5 +1,9 @@
 arch ?= x86_64
-linker ?= ld
+ifeq ($(arch), aarch64)
+	linker := aarch64-elf-ld
+else
+	linker := ld
+endif
 
 kernel := build/kernel-$(arch).bin
 iso := build/noros-$(arch).iso
