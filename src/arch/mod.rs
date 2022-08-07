@@ -4,11 +4,11 @@ mod aarch64;
 mod x86_64;
 
 #[cfg(target_arch = "aarch64")]
-pub use aarch64::_print as _print;
+pub use aarch64::_print;
 #[cfg(target_arch = "aarch64")]
-pub use aarch64::_eprint as _eprint;
+pub use aarch64::_eprint;
 
 #[cfg(target_arch = "x86_64")]
-pub use x86_64::_print as _print;
+pub use x86_64::_print;
 #[cfg(target_arch = "x86_64")]
-pub use x86_64::_eprint as _eprint;
+pub use x86_64::_eprint;
