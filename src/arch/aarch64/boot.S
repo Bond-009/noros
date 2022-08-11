@@ -1,3 +1,8 @@
+.macro ADR_REL register, symbol
+    adrp    \register, \symbol
+    add     \register, \register, #:lo12:\symbol
+.endm
+
 // To keep this in the first portion of the binary.
 .section ".text.boot"
 
@@ -7,25 +12,25 @@ _start:
     // read cpu id, stop slave cores
     mrs     x1, mpidr_el1
     and     x1, x1, #3
-    cbz     x1, 2f
-    // cpu id > 0, stop
-1:  wfe
-    b       1b
-2:  // cpu id == 0
+    cbnz    x1, .halt   // cpu id != 0, halt
 
-    // set top of stack just before our code (stack grows to a lower address per AAPCS64)
-    ldr     x1, =_start
-    mov     sp, x1
-
-    // clear bss
-    ldr     x1, =__bss_start
-    ldr     w2, =__bss_size
-3:  cbz     w2, 4f
-    str     xzr, [x1], #8
-    sub     w2, w2, #1
-    cbnz    w2, 3b
+    // zero bss
+    ADR_REL     x0, __bss_start
+    ADR_REL     x1, __bss_end_exclusive
+.zero_bss:
+    cmp     x0, x1
+    b.eq   .jmp_to_rust
+    stp     xzr, xzr, [x0], #16
+    b       .zero_bss
 
     // jump to C code, should not return
-4:  bl      kernel_main
+.jmp_to_rust:
+    // set top of stack just before our code (stack grows to a lower address per AAPCS64)
+    ADR_REL     x0, __boot_core_stack_end_exclusive
+    mov     sp, x0
+
+    b      kernel_main
     // for failsafe, halt this core too
-    b       1b
+.halt:
+    wfe
+    b       .halt

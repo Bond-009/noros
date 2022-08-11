@@ -2,20 +2,30 @@ use core::arch::asm;
 use core::fmt::{Arguments, Result, Write};
 use core::hint;
 
+use crate::lazy::OnceCell;
 use crate::prelude::*;
+use crate::sync::mutex::Mutex;
 
 #[doc(hidden)]
 pub fn _print(args: Arguments) {
-    unsafe { WRITER.write_fmt(args).unwrap() }
+
+    writec(b'p');
+    let mut lock = WRITER.lock();
+
+    writec(b'l');
+    lock.get_mut().unwrap().write_fmt(args).unwrap();
+
+    writec(b'd');
 }
 
 #[doc(hidden)]
 pub fn _eprint(args: Arguments) {
-    unsafe { WRITER.write_fmt(args).unwrap() }
+    let mut lock = WRITER.lock();
+    lock.get_mut().unwrap().write_fmt(args).unwrap();
 }
 
 // TODO:
-static mut WRITER: Uart = Uart::new();
+static WRITER: Mutex<OnceCell<Uart>> = Mutex::new(OnceCell::new());
 
 // TODO:
 static mut MMIO_BASE: *mut u32 = 0 as *mut _;
@@ -114,14 +124,14 @@ fn init_uart() {
     AUX_MU_IIR.write(0xc6);
     AUX_MU_BAUD.write(270);
     let mut r = GPFSEL1.read();
-    r&=!((7<<12)|(7<<15)); // gpio14, gpio15
-    r|=(2<<12)|(2<<15);    // alt5
+    r &= !((7 << 12) | (7 << 15)); // gpio14, gpio15
+    r |= (2 << 12) | (2 << 15); // alt5
     GPFSEL1.write(r);
     GPPUD.write(0);
     for _ in 0..150 {
         unsafe { asm!("nop") };
     }
-    GPPUDCLK0.write((1<<14)|(1<<15));
+    GPPUDCLK0.write((1 << 14) | (1 << 15));
     for _ in 0..150 {
         unsafe { asm!("nop") };
     }
@@ -130,11 +140,13 @@ fn init_uart() {
 }
 
 #[derive(Debug)]
-struct Uart;
+struct Uart(bool);
 
 impl Uart {
-    const fn new() -> Self {
-        Self {}
+    fn new() -> Self {
+
+        writec(b'n');
+        Self(true)
     }
 }
 
@@ -153,7 +165,7 @@ impl Write for Uart {
 }
 
 #[no_mangle]
-pub extern fn kernel_main(_dtb_ptr32: u64, _x1: u64, _x2: u64, _x3: u64) {
+pub extern fn kernel_main(_dtb_ptr32: u64, _x1: u64, _x2: u64, _x3: u64) -> ! {
     // TODO:
 
     let reg: u32;
@@ -169,6 +181,25 @@ pub extern fn kernel_main(_dtb_ptr32: u64, _x1: u64, _x2: u64, _x3: u64) {
     }
 
     init_uart();
+    writec(b'1');
+    let u = Uart::new();
+    writec(b'1');
+
+    {
+    let l = WRITER.try_lock();
+
+
+    writec(b'1');
+
+    if l.is_ok() {
+        writec(b'2');
+
+        l.unwrap().set(u).unwrap();
+    } else {
+        writec(b'E');
+    }
+
+    }
 
     println!("Hello World!");
 

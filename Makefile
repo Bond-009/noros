@@ -1,6 +1,6 @@
 arch ?= x86_64
 ifeq ($(arch), aarch64)
-	linker := aarch64-elf-ld
+	linker := aarch64-none-elf-ld
 else
 	linker := ld
 endif
@@ -19,7 +19,7 @@ endif
 assembly_source_files := $(wildcard src/arch/$(arch)/*.$(assembly_ext))
 assembly_object_files := $(patsubst src/arch/$(arch)/%.$(assembly_ext), build/arch/$(arch)/%.o, $(assembly_source_files))
 
-rust_os := target/$(arch)-unknown-none/debug/libnoros.a
+rust_os := target/$(arch)-unknown-none/release/libnoros.a
 
 .PHONY: all clean run iso kernel
 
@@ -34,7 +34,7 @@ test:
 
 ifeq ($(arch), aarch64)
 run: $(kernel)
-	@qemu-system-$(arch) -M raspi3b -serial stdio -kernel $(kernel)
+	@qemu-system-$(arch) -machine raspi3b -serial null -serial stdio -kernel $(kernel)
 else
 run: $(iso)
 	@qemu-system-$(arch) -monitor stdio -cdrom $(iso)
@@ -43,13 +43,13 @@ endif
 iso: $(iso)
 
 kernel:
-	@cargo build --target $(arch)-unknown-none
+	@cargo build --release --target $(arch)-unknown-none
 
 # compile assembly files
 build/arch/$(arch)/%.o: src/arch/$(arch)/%.$(assembly_ext)
 	@mkdir -p $(shell dirname $@)
 ifeq ($(arch), aarch64)
-	@aarch64-elf-as -c $< -o $@
+	@aarch64-none-elf-as -c $< -o $@
 else
 	@nasm -Wall -felf64 $< -o $@
 endif
@@ -62,7 +62,7 @@ $(iso): $(kernel) $(grub_cfg)
 	@rm -r build/isofiles
 
 $(kernel): kernel $(rust_os) $(assembly_object_files) $(linker_script)
-	@$(linker) -n -T $(linker_script) -o $(kernel) $(assembly_object_files) $(rust_os)
+	@$(linker) -n --script=$(linker_script) -o $(kernel) $(assembly_object_files) $(rust_os)
 ifeq ($(arch), aarch64)
-	@aarch64-elf-objcopy $(kernel) -O binary build/kernel8.img
+	@aarch64-none-elf-objcopy $(kernel) -O binary build/kernel8.img
 endif

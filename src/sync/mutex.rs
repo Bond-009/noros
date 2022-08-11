@@ -41,7 +41,7 @@ impl MovableMutex {
 
     #[inline]
     pub fn unlock(&self) {
-        self.inner.compare_exchange(true, false, Ordering::Release, Ordering::Relaxed).unwrap();
+        self.inner.store(false, Ordering::Release);
     }
 }
 
