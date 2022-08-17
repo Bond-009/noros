@@ -19,7 +19,7 @@ endif
 assembly_source_files := $(wildcard src/arch/$(arch)/*.$(assembly_ext))
 assembly_object_files := $(patsubst src/arch/$(arch)/%.$(assembly_ext), build/arch/$(arch)/%.o, $(assembly_source_files))
 
-rust_os := target/$(arch)-unknown-none/release/libnoros.a
+rust_os := target/$(arch)-unknown-none/debug/libnoros.a
 
 .PHONY: all clean run iso kernel
 
@@ -43,7 +43,7 @@ endif
 iso: $(iso)
 
 kernel:
-	@cargo build --release --target $(arch)-unknown-none
+	@cargo build --target $(arch)-unknown-none
 
 # compile assembly files
 build/arch/$(arch)/%.o: src/arch/$(arch)/%.$(assembly_ext)

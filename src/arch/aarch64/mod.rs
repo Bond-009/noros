@@ -2,30 +2,20 @@ use core::arch::asm;
 use core::fmt::{Arguments, Result, Write};
 use core::hint;
 
-use crate::lazy::OnceCell;
 use crate::prelude::*;
-use crate::sync::mutex::Mutex;
 
 #[doc(hidden)]
 pub fn _print(args: Arguments) {
-
-    writec(b'p');
-    let mut lock = WRITER.lock();
-
-    writec(b'l');
-    lock.get_mut().unwrap().write_fmt(args).unwrap();
-
-    writec(b'd');
+    unsafe { WRITER.write_fmt(args).unwrap() };
 }
 
 #[doc(hidden)]
 pub fn _eprint(args: Arguments) {
-    let mut lock = WRITER.lock();
-    lock.get_mut().unwrap().write_fmt(args).unwrap();
+    unsafe { WRITER.write_fmt(args).unwrap() };
 }
 
-// TODO:
-static WRITER: Mutex<OnceCell<Uart>> = Mutex::new(OnceCell::new());
+// TODO: make thread safe
+static mut WRITER: Uart = Uart::new();
 
 // TODO:
 static mut MMIO_BASE: *mut u32 = 0 as *mut _;
@@ -140,13 +130,11 @@ fn init_uart() {
 }
 
 #[derive(Debug)]
-struct Uart(bool);
+struct Uart;
 
 impl Uart {
-    fn new() -> Self {
-
-        writec(b'n');
-        Self(true)
+    const fn new() -> Self {
+        Self
     }
 }
 
@@ -167,7 +155,6 @@ impl Write for Uart {
 #[no_mangle]
 pub extern fn kernel_main(_dtb_ptr32: u64, _x1: u64, _x2: u64, _x3: u64) -> ! {
     // TODO:
-
     let reg: u32;
     unsafe { asm!("mrs {:x}, midr_el1", out(reg) reg) }
     let part_num = (reg >> 4) & 0xFFF;
@@ -181,25 +168,6 @@ pub extern fn kernel_main(_dtb_ptr32: u64, _x1: u64, _x2: u64, _x3: u64) -> ! {
     }
 
     init_uart();
-    writec(b'1');
-    let u = Uart::new();
-    writec(b'1');
-
-    {
-    let l = WRITER.try_lock();
-
-
-    writec(b'1');
-
-    if l.is_ok() {
-        writec(b'2');
-
-        l.unwrap().set(u).unwrap();
-    } else {
-        writec(b'E');
-    }
-
-    }
 
     println!("Hello World!");
 
