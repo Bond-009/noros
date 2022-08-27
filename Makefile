@@ -1,8 +1,13 @@
+.ONESHELL:
+MAKEFLAGS += --warn-undefined-variables
+MAKEFLAGS += --no-builtin-rules
+
 arch ?= x86_64
-ifeq ($(arch), aarch64)
-	linker := aarch64-none-elf-ld
-else
-	linker := ld
+linker ?= ld
+ifneq ($(arch), $(shell uname -m))
+	ifeq ($(arch), aarch64)
+		toolchain_prefix ?= aarch64-none-elf-
+	endif
 endif
 
 kernel := build/kernel-$(arch).bin
@@ -21,9 +26,7 @@ assembly_object_files := $(patsubst src/arch/$(arch)/%.$(assembly_ext), build/ar
 
 rust_os := target/$(arch)-unknown-none/debug/libnoros.a
 
-.PHONY: all clean run iso kernel
-
-all: $(kernel)
+.PHONY: clean test run iso kernel
 
 clean:
 	@rm -rf build
@@ -34,6 +37,7 @@ test:
 
 ifeq ($(arch), aarch64)
 run: $(kernel)
+	@$(toolchain_prefix)objcopy $(kernel) -O binary build/kernel8.img
 	@qemu-system-$(arch) -machine raspi3b -serial null -serial stdio -kernel $(kernel)
 else
 run: $(iso)
@@ -48,10 +52,10 @@ kernel:
 # compile assembly files
 build/arch/$(arch)/%.o: src/arch/$(arch)/%.$(assembly_ext)
 	@mkdir -p $(shell dirname $@)
-ifeq ($(arch), aarch64)
-	@aarch64-none-elf-as -c $< -o $@
-else
+ifeq ($(arch), x86_64)
 	@nasm -Wall -felf64 $< -o $@
+else
+	@$(toolchain_prefix)as -c $< -o $@
 endif
 
 $(iso): $(kernel) $(grub_cfg)
@@ -62,7 +66,4 @@ $(iso): $(kernel) $(grub_cfg)
 	@rm -r build/isofiles
 
 $(kernel): kernel $(rust_os) $(assembly_object_files) $(linker_script)
-	@$(linker) --nmagic -z noexecstack --script=$(linker_script) -o $(kernel) $(assembly_object_files) $(rust_os)
-ifeq ($(arch), aarch64)
-	@aarch64-none-elf-objcopy $(kernel) -O binary build/kernel8.img
-endif
+	@$(toolchain_prefix)$(linker) --nmagic -z noexecstack --script=$(linker_script) -o $(kernel) $(assembly_object_files) $(rust_os)
