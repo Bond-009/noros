@@ -2,7 +2,7 @@
 #![allow(dead_code)]
 
 mod arch;
-mod console;
+mod drivers;
 mod lazy;
 mod prelude;
 mod sync;

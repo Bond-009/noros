@@ -1,8 +1,14 @@
+pub mod mmio;
+
 use core::arch::asm;
 use core::fmt::{Arguments, Result, Write};
 use core::hint;
 
 use crate::prelude::*;
+use crate::drivers::gpio::bcm2835_gpio::*;
+use crate::drivers::mailbox::bcm2835_mailbox::*;
+
+use self::mmio::MmioReg;
 
 #[doc(hidden)]
 pub fn _print(args: Arguments) {
@@ -17,84 +23,46 @@ pub fn _eprint(args: Arguments) {
 // TODO: make thread safe
 static mut WRITER: Uart = Uart::new();
 
-// TODO:
-static mut MMIO_BASE: *mut u32 = 0 as *mut _;
-
-#[repr(transparent)]
-struct MmioReg {
-    v: usize
-}
-
-impl MmioReg {
-    const unsafe fn new(val: usize) -> Self {
-        Self { v: val }
-    }
-
-    fn as_ptr(&self) -> *const u32 {
-        unsafe { (MMIO_BASE as usize + self.v) as *const _}
-    }
-
-    fn as_mut_ptr(&self) -> *mut u32 {
-        unsafe { (MMIO_BASE as usize + self.v) as *mut _}
-    }
-
-    fn read(&self) -> u32 {
-        unsafe { self.as_ptr().read_volatile() }
-    }
-
-    fn write(&self, val: u32) {
-        unsafe { self.as_mut_ptr().write_volatile(val) }
-    }
-}
-
-// The offsets for each register.
-const GPIO_BASE: usize = 0x200000;
-const GPFSEL1: MmioReg = unsafe { MmioReg::new(GPIO_BASE + 0x04) };
-
-// Controls actuation of pull up/down to ALL GPIO pins.
-const GPPUD: MmioReg = unsafe { MmioReg::new(GPIO_BASE + 0x94) };
-
-// Controls actuation of pull up/down for specific GPIO pin.
-const GPPUDCLK0: MmioReg = unsafe { MmioReg::new(GPIO_BASE + 0x98) };
+const AUX_BASE: usize = 0x215000;
 
 /// Auxiliary Interrupt status
-const AUX_IRQ: MmioReg = unsafe { MmioReg::new(GPIO_BASE + 0x15000) };
+pub const AUX_IRQ: MmioReg = unsafe { MmioReg::new(AUX_BASE) };
 
 /// Auxiliary enables
-const AUX_ENABLES: MmioReg = unsafe { MmioReg::new(GPIO_BASE + 0x15004) };
+pub const AUX_ENABLES: MmioReg = unsafe { MmioReg::new(AUX_BASE + 0x4) };
 
 /// Mini Uart I/O Data
-const AUX_MU_IO: MmioReg = unsafe { MmioReg::new(GPIO_BASE + 0x15040) };
+pub const AUX_MU_IO: MmioReg = unsafe { MmioReg::new(AUX_BASE + 0x40) };
 
 /// Mini Uart Interrupt Enable
-const AUX_MU_IER: MmioReg = unsafe { MmioReg::new(GPIO_BASE + 0x15044) };
+pub const AUX_MU_IER: MmioReg = unsafe { MmioReg::new(AUX_BASE + 0x44) };
 
 /// Mini Uart Interrupt Identify
-const AUX_MU_IIR: MmioReg = unsafe { MmioReg::new(GPIO_BASE + 0x15048) };
+pub const AUX_MU_IIR: MmioReg = unsafe { MmioReg::new(AUX_BASE + 0x48) };
 
 /// Mini Uart Line Control
-const AUX_MU_LCR: MmioReg = unsafe { MmioReg::new(GPIO_BASE + 0x1504C) };
+pub const AUX_MU_LCR: MmioReg = unsafe { MmioReg::new(AUX_BASE + 0x4C) };
 
 /// Mini Uart Modem Control
-const AUX_MU_MCR: MmioReg = unsafe { MmioReg::new(GPIO_BASE + 0x15050) };
+pub const AUX_MU_MCR: MmioReg = unsafe { MmioReg::new(AUX_BASE + 0x50) };
 
 /// Mini Uart Line Status
-const AUX_MU_LSR: MmioReg = unsafe { MmioReg::new(GPIO_BASE + 0x15054) };
+pub const AUX_MU_LSR: MmioReg = unsafe { MmioReg::new(AUX_BASE + 0x54) };
 
 /// Mini Uart Modem Status
-const AUX_MU_MSR: MmioReg = unsafe { MmioReg::new(GPIO_BASE + 0x15058) };
+pub const AUX_MU_MSR: MmioReg = unsafe { MmioReg::new(AUX_BASE + 0x58) };
 
 /// Mini Uart Scratch
-const AUX_MU_SCRATCH: MmioReg = unsafe { MmioReg::new(GPIO_BASE + 0x1505C) };
+pub const AUX_MU_SCRATCH: MmioReg = unsafe { MmioReg::new(AUX_BASE + 0x5C) };
 
 /// Mini Uart Extra Control
-const AUX_MU_CNTL: MmioReg = unsafe { MmioReg::new(GPIO_BASE + 0x15060) };
+pub const AUX_MU_CNTL: MmioReg = unsafe { MmioReg::new(AUX_BASE + 0x60) };
 
 /// Mini Uart Extra Status
-const AUX_MU_STAT: MmioReg = unsafe { MmioReg::new(GPIO_BASE + 0x15064) };
+pub const AUX_MU_STAT: MmioReg = unsafe { MmioReg::new(AUX_BASE + 0x64) };
 
 /// Mini Uart Baudrate
-const AUX_MU_BAUD: MmioReg = unsafe { MmioReg::new(GPIO_BASE + 0x15068) };
+pub const AUX_MU_BAUD: MmioReg = unsafe { MmioReg::new(AUX_BASE + 0x68) };
 
 fn writec(val: u8) {
     while (AUX_MU_LSR.read() & 0x20) == 0 {
@@ -154,22 +122,18 @@ impl Write for Uart {
 
 #[no_mangle]
 pub extern fn kernel_main(_dtb_ptr32: u64, _x1: u64, _x2: u64, _x3: u64) -> ! {
-    // TODO:
-    let reg: u32;
-    unsafe { asm!("mrs {:x}, midr_el1", out(reg) reg) }
-    let part_num = (reg >> 4) & 0xFFF;
-    unsafe {
-        match part_num {
-            0xC07 => MMIO_BASE = 0x3F000000 as *mut _,
-            0xD03 => MMIO_BASE = 0x3F000000 as *mut _,
-            0xD08 => MMIO_BASE = 0xFE000000 as *mut _,
-            _ => MMIO_BASE = 0x3F000000  as *mut _
-        }
-    }
+    mmio::init();
 
     init_uart();
-
     println!("Hello World!");
+
+    let mut mbox: MailboxBuffer<8> = [8 * 4, MBOX_REQUEST, MBOX_TAG_GETSERIAL, 8, 8, 0, 0, MBOX_TAG_LAST].into();
+    mbox_call(Message::new(&mut mbox, Channel::PropertyTagsARMToVC)).unwrap();
+    unsafe {
+        let s1 = *(&mbox as *const _ as *const u32).offset(6);
+        let s2 = *(&mbox as *const _ as *const u32).offset(5);
+        println!("Serial number: {:X}{:X}", s1, s2);
+    }
 
     loop { }
 }

@@ -4,7 +4,7 @@ mod interrupt;
 use core::fmt::{Arguments, Write};
 use core::ptr;
 
-use crate::console::vga::{Writer, ScreenChar, Color};
+use crate::drivers::video::console::vga::{Writer, ScreenChar, Color};
 use crate::sync::mutex::Mutex;
 use crate::lazy::OnceCell;
 use crate::prelude::*;

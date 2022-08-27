@@ -15,12 +15,12 @@ SECTIONS
         *(.text*)
     }
     .rodata : ALIGN(8) { *(.rodata*) }
-    .data : { *(.data*) }
+    .data : ALIGN(4096) { *(.data*) }
     .bss (NOLOAD) : ALIGN(16)
     {
         __bss_start = .;
         *(.bss*);
-        . = ALIGN(16);
+        . = ALIGN(4096);
         __bss_end_exclusive = .;
     }
 

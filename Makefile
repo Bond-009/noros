@@ -62,7 +62,7 @@ $(iso): $(kernel) $(grub_cfg)
 	@rm -r build/isofiles
 
 $(kernel): kernel $(rust_os) $(assembly_object_files) $(linker_script)
-	@$(linker) -n --script=$(linker_script) -o $(kernel) $(assembly_object_files) $(rust_os)
+	@$(linker) --nmagic -z noexecstack --script=$(linker_script) -o $(kernel) $(assembly_object_files) $(rust_os)
 ifeq ($(arch), aarch64)
 	@aarch64-none-elf-objcopy $(kernel) -O binary build/kernel8.img
 endif
