@@ -66,7 +66,6 @@ pub const AUX_MU_BAUD: MmioReg = unsafe { MmioReg::new(AUX_BASE + 0x68) };
 
 fn writec(val: u8) {
     while (AUX_MU_LSR.read() & 0x20) == 0 {
-        // REVIEW:
         hint::spin_loop();
     }
 

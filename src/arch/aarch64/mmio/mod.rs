@@ -23,6 +23,7 @@ pub struct MmioReg {
     v: usize
 }
 
+// REVIEW: split read and write into different traits?
 impl MmioReg {
     pub const unsafe fn new(val: usize) -> Self {
         Self { v: val }
