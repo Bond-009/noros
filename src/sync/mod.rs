@@ -1,5 +1,6 @@
 pub mod mutex;
 
+#[derive(Debug)]
 pub enum TryLockError {
     WouldBlock
 }

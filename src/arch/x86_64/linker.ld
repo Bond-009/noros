@@ -1,6 +1,7 @@
 ENTRY(start)
 
-SECTIONS {
+SECTIONS
+{
     . = 1M;
 
     .boot :
