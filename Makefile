@@ -3,6 +3,12 @@ MAKEFLAGS += --warn-undefined-variables
 MAKEFLAGS += --no-builtin-rules
 
 arch ?= x86_64
+ifeq ($(arch), aarch64)
+	target := $(arch)-unknown-none-softfloat
+else
+	target := $(arch)-unknown-none
+endif
+
 linker ?= ld
 ifneq ($(arch), $(shell uname -m))
 	ifeq ($(arch), aarch64)
@@ -12,7 +18,7 @@ endif
 # default to empty
 toolchain_prefix ?=
 
-kernel := build/kernel-$(arch).bin
+kernel := build/kernel-$(arch).elf
 iso := build/noros-$(arch).iso
 linker_script := src/arch/$(arch)/linker.ld
 grub_cfg := src/arch/$(arch)/grub.cfg
@@ -26,9 +32,9 @@ endif
 assembly_source_files := $(wildcard src/arch/$(arch)/*.$(assembly_ext))
 assembly_object_files := $(patsubst src/arch/$(arch)/%.$(assembly_ext), build/arch/$(arch)/%.o, $(assembly_source_files))
 
-rust_os := target/$(arch)-unknown-none/debug/libnoros.a
+rust_os := target/$(target)/debug/libnoros.a
 
-.PHONY: clean test run iso kernel
+.PHONY: clean test objdump run iso kernel
 
 clean:
 	@rm -rf build
@@ -40,16 +46,19 @@ test:
 ifeq ($(arch), aarch64)
 run: $(kernel)
 	@$(toolchain_prefix)objcopy $(kernel) -O binary build/kernel8.img
-	@qemu-system-$(arch) -machine raspi3b -serial null -serial stdio -kernel $(kernel)
+	@qemu-system-$(arch) -machine raspi3b -serial null -serial stdio -kernel $(kernel) -display none -d int
 else
 run: $(iso)
 	@qemu-system-$(arch) -monitor stdio -cdrom $(iso)
 endif
 
+objdump: $(kernel)
+	@$(toolchain_prefix)objdump --disassemble --demangle $(kernel)
+
 iso: $(iso)
 
 kernel:
-	@cargo build --target $(arch)-unknown-none
+	@cargo build --target $(target)
 
 # compile assembly files
 build/arch/$(arch)/%.o: src/arch/$(arch)/%.$(assembly_ext)
