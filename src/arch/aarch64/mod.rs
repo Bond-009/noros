@@ -1,6 +1,6 @@
 pub mod mmio;
 
-use core::arch::asm;
+use core::arch::{asm, global_asm};
 use core::fmt::{Arguments, Result, Write};
 use core::hint;
 
@@ -9,6 +9,8 @@ use crate::drivers::gpio::bcm2835_gpio::*;
 use crate::drivers::mailbox::bcm2835_mailbox::*;
 
 use self::mmio::MmioReg;
+
+global_asm!(include_str!("boot.S"));
 
 #[doc(hidden)]
 pub fn _print(args: Arguments) {

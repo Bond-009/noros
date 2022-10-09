@@ -23,14 +23,12 @@ iso := build/noros-$(arch).iso
 linker_script := src/arch/$(arch)/linker.ld
 grub_cfg := src/arch/$(arch)/grub.cfg
 
+# we use nasm for x86_64 asmsembly and Rusts global_asm for all other platforms
 ifeq ($(arch), x86_64)
-	assembly_ext := asm
+	assembly_object_files := $(patsubst src/arch/x86_64/%.asm, build/arch/x86_64/%.o, $(wildcard src/arch/x86_64/*.asm))
 else
-	assembly_ext := S
+	assembly_object_files :=
 endif
-
-assembly_source_files := $(wildcard src/arch/$(arch)/*.$(assembly_ext))
-assembly_object_files := $(patsubst src/arch/$(arch)/%.$(assembly_ext), build/arch/$(arch)/%.o, $(assembly_source_files))
 
 rust_os := target/$(target)/debug/libnoros.a
 
@@ -60,14 +58,10 @@ iso: $(iso)
 kernel:
 	@cargo build --target $(target)
 
-# compile assembly files
-build/arch/$(arch)/%.o: src/arch/$(arch)/%.$(assembly_ext)
+# compile x86_64 assembly files
+build/arch/x86_64/%.o: src/arch/x86_64/%.asm
 	@mkdir -p $(shell dirname $@)
-ifeq ($(arch), x86_64)
 	@nasm -Wall -felf64 $< -o $@
-else
-	@$(toolchain_prefix)as -c $< -o $@
-endif
 
 $(iso): $(kernel) $(grub_cfg)
 	@mkdir -p build/isofiles/boot/grub
@@ -77,4 +71,5 @@ $(iso): $(kernel) $(grub_cfg)
 	@rm -r build/isofiles
 
 $(kernel): kernel $(rust_os) $(assembly_object_files) $(linker_script)
+	@mkdir -p build
 	@$(toolchain_prefix)$(linker) --nmagic -z noexecstack --script=$(linker_script) -o $(kernel) $(assembly_object_files) $(rust_os)
