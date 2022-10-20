@@ -11,7 +11,7 @@ endif
 linker ?= ld
 ifneq ($(arch), $(shell uname -m))
 	ifeq ($(arch), aarch64)
-		toolchain_prefix ?= aarch64-none-elf-
+		toolchain_prefix ?= aarch64-elf-
 	endif
 endif
 # default to empty
