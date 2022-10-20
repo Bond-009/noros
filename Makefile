@@ -1,4 +1,3 @@
-.ONESHELL:
 MAKEFLAGS += --warn-undefined-variables
 MAKEFLAGS += --no-builtin-rules
 
@@ -70,11 +69,12 @@ else
 endif
 
 $(iso): $(kernel) $(grub_cfg)
-	@mkdir -p build/isofiles/boot/grub
-	@cp $(kernel) build/isofiles/boot/kernel.bin
-	@cp $(grub_cfg) build/isofiles/boot/grub
-	@grub-mkrescue -o $(iso) build/isofiles 2> /dev/null
-	@rm -r build/isofiles
+	@$(eval TMP := $(shell mktemp -d))
+	@mkdir -p $(TMP)/boot/grub
+	@cp $(kernel) $(TMP)/boot/kernel.bin
+	@cp $(grub_cfg) $(TMP)/boot/grub
+	@grub2-mkrescue -o $(iso) $(TMP)
+	@rm -r $(TMP)
 
 $(kernel): kernel $(rust_os) $(assembly_object_files) $(linker_script)
 	@$(toolchain_prefix)$(linker) --nmagic -z noexecstack --script=$(linker_script) -o $(kernel) $(assembly_object_files) $(rust_os)
