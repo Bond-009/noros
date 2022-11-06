@@ -28,12 +28,18 @@ else
 	assembly_ext := S
 endif
 
+ifeq (, $(shell command -v grub2-mkrescue))
+	grub_mkrescue := grub-mkrescue
+else
+	grub_mkrescue := grub2-mkrescue
+endif
+
 assembly_source_files := $(wildcard src/arch/$(arch)/*.$(assembly_ext))
 assembly_object_files := $(patsubst src/arch/$(arch)/%.$(assembly_ext), build/arch/$(arch)/%.o, $(assembly_source_files))
 
 rust_os := target/$(target)/debug/libnoros.a
 
-.PHONY: clean test objdump run iso kernel
+.PHONY: clean test gdb objdump run iso kernel
 
 clean:
 	@rm -rf build
@@ -42,17 +48,20 @@ clean:
 test:
 	@cargo test --target $(shell rustc -vV | sed -n 's/host: //p')
 
+objdump: $(kernel)
+	@$(toolchain_prefix)objdump --disassemble --demangle $(kernel)
+
+gdb:
+	@RUST_GDB=$(toolchain_prefix)gdb rust-gdb $(kernel) -ex "target remote :1234"
+
 ifeq ($(arch), aarch64)
 run: $(kernel)
 	@$(toolchain_prefix)objcopy $(kernel) -O binary build/kernel8.img
-	@qemu-system-$(arch) -machine raspi3b -serial null -serial stdio -kernel $(kernel) -display none -d int
+	@qemu-system-$(arch) -machine raspi3b -serial null -serial stdio -kernel $(kernel) -display none -d int -s
 else
 run: $(iso)
-	@qemu-system-$(arch) -monitor stdio -cdrom $(iso)
+	@qemu-system-$(arch) -monitor stdio -cdrom $(iso) -s
 endif
-
-objdump: $(kernel)
-	@$(toolchain_prefix)objdump --disassemble --demangle $(kernel)
 
 iso: $(iso)
 
@@ -73,7 +82,7 @@ $(iso): $(kernel) $(grub_cfg)
 	@mkdir -p $(TMP)/boot/grub
 	@cp $(kernel) $(TMP)/boot/kernel.bin
 	@cp $(grub_cfg) $(TMP)/boot/grub
-	@grub2-mkrescue -o $(iso) $(TMP)
+	@$(grub_mkrescue) -o $(iso) $(TMP)
 	@rm -r $(TMP)
 
 $(kernel): kernel $(rust_os) $(assembly_object_files) $(linker_script)
