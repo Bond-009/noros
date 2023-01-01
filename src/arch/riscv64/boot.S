@@ -3,11 +3,10 @@
 .global _start
 
 _start:
-    nop
-    nop
-    nop
+    la      sp, __boot_core_stack_end_exclusive
+
+    # jump to Rust code, should not return
+    j kernel_main
+    # failsafe
 .loop:
-    nop
-    nop
-    nop
     j .loop

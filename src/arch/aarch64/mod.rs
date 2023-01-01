@@ -120,7 +120,7 @@ impl Write for Uart {
 }
 
 #[no_mangle]
-pub extern fn kernel_main(_dtb_ptr32: u64, _x1: u64, _x2: u64, _x3: u64) -> ! {
+pub extern "C" fn kernel_main(_dtb_ptr32: u64, _x1: u64, _x2: u64, _x3: u64) -> ! {
     mmio::init();
 
     init_uart();
