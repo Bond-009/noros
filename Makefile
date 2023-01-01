@@ -4,15 +4,15 @@ MAKEFLAGS += --no-builtin-rules
 arch ?= x86_64
 ifeq ($(arch), aarch64)
 	target := $(arch)-unknown-none-softfloat
+else ifeq ($(arch), riscv64)
+	target := $(arch)gc-unknown-none-elf
 else
 	target := $(arch)-unknown-none
 endif
 
 linker ?= ld
 ifneq ($(arch), $(shell uname -m))
-	ifeq ($(arch), aarch64)
-		toolchain_prefix ?= aarch64-elf-
-	endif
+	toolchain_prefix ?= $(arch)-elf-
 endif
 # default to empty
 toolchain_prefix ?=
@@ -58,6 +58,10 @@ ifeq ($(arch), aarch64)
 run: $(kernel)
 	@$(toolchain_prefix)objcopy $(kernel) -O binary build/kernel8.img
 	@qemu-system-$(arch) -machine raspi3b -serial null -serial stdio -kernel $(kernel) -display none -d int -s
+else ifeq ($(arch), riscv64)
+run: $(kernel)
+	@$(toolchain_prefix)objcopy $(kernel) -O binary build/kernel-$(arch).img
+	@qemu-system-$(arch) -machine virt -serial stdio -kernel build/kernel-$(arch).img -display none -s -S
 else
 run: $(iso)
 	@qemu-system-$(arch) -monitor stdio -cdrom $(iso) -s
@@ -74,7 +78,7 @@ build/arch/$(arch)/%.o: src/arch/$(arch)/%.$(assembly_ext)
 ifeq ($(arch), x86_64)
 	@nasm -Wall -felf64 $< -o $@
 else
-	@$(toolchain_prefix)as -c $< -o $@
+	@$(toolchain_prefix)as -g -c $< -o $@
 endif
 
 $(iso): $(kernel) $(grub_cfg)
