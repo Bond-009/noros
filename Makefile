@@ -90,4 +90,4 @@ $(iso): $(kernel) $(grub_cfg)
 	@rm -r $(TMP)
 
 $(kernel): kernel $(rust_os) $(assembly_object_files) $(linker_script)
-	@$(toolchain_prefix)$(linker) --nmagic -z noexecstack --script=$(linker_script) -o $(kernel) $(assembly_object_files) $(rust_os)
+	@$(toolchain_prefix)$(linker) --nmagic -z noexecstack --no-warn-rwx-segment --script=$(linker_script) -o $(kernel) $(assembly_object_files) $(rust_os)
