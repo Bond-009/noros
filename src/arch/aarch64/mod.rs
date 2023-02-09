@@ -64,14 +64,6 @@ pub const AUX_MU_STAT: MmioReg = unsafe { MmioReg::new(AUX_BASE + 0x64) };
 /// Mini Uart Baudrate
 pub const AUX_MU_BAUD: MmioReg = unsafe { MmioReg::new(AUX_BASE + 0x68) };
 
-fn writec(val: u8) {
-    while (AUX_MU_LSR.read() & 0x20) == 0 {
-        hint::spin_loop();
-    }
-
-    AUX_MU_IO.write(val as u32)
-}
-
 fn init_uart() {
     AUX_ENABLES.write(AUX_ENABLES.read() | 1);
     AUX_MU_CNTL.write(0);
@@ -109,11 +101,21 @@ impl Write for Uart {
     fn write_str(&mut self, s: &str) -> Result {
         for c in s.chars() {
             if c == '\n' {
-                writec(b'\r');
+                self.write_char('\r')?;
             }
 
-            writec(c as u8);
+            self.write_char(c)?;
         }
+
+        Ok(())
+    }
+
+    fn write_char(&mut self, c: char) -> Result {
+        while (AUX_MU_LSR.read() & 0x20) == 0 {
+            hint::spin_loop();
+        }
+
+        AUX_MU_IO.write(c as u32);
 
         Ok(())
     }

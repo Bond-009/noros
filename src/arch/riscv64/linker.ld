@@ -1,16 +1,31 @@
+ENTRY(_start)
+
+STACK_SIZE = 0x100000;
+
 SECTIONS
 {
-    . = 0x0;
-    .text     : { *(.text) }
+    . = 0;
+    .text :
+    {
+        KEEP(*(.text.boot))
+        *(.text.kernel_main)
+        *(.text*)
+    }
+    .rodata : ALIGN(8) { *(.rodata*) }
+    .data : ALIGN(8) { *(.data*) }
+    .bss (NOLOAD) : ALIGN(8)
+    {
+        __bss_start = .;
+        *(.bss*);
+        . = ALIGN(8);
+        __bss_end_exclusive = .;
+    }
     .boot_core_stack (NOLOAD) : ALIGN(16)
     {
-        . += 0x1000;
+        . += STACK_SIZE;
+        . = ALIGN(16);
         __boot_core_stack_end_exclusive = .;
     }
-    /DISCARD/ : { *(.dynstr*) }
-    /DISCARD/ : { *(.dynamic*) }
-    /DISCARD/ : { *(.plt*) }
-    /DISCARD/ : { *(.interp*) }
-    /DISCARD/ : { *(.gnu*) }
-    /DISCARD/ : { *(.note*) }
+
+   /DISCARD/ : { *(.comment) }
 }

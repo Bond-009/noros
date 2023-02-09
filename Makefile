@@ -18,7 +18,6 @@ endif
 toolchain_prefix ?=
 
 kernel := build/kernel-$(arch).elf
-iso := build/noros-$(arch).iso
 linker_script := src/arch/$(arch)/linker.ld
 grub_cfg := src/arch/$(arch)/grub.cfg
 
@@ -34,12 +33,20 @@ else
 	grub_mkrescue := grub2-mkrescue
 endif
 
+ifeq ($(arch), aarch64)
+	image := build/kernel8.img
+else ifeq ($(arch), x86_64)
+	image := build/noros-$(arch).iso
+else
+	image := build/kernel-$(arch).img
+endif
+
 assembly_source_files := $(wildcard src/arch/$(arch)/*.$(assembly_ext))
 assembly_object_files := $(patsubst src/arch/$(arch)/%.$(assembly_ext), build/arch/$(arch)/%.o, $(assembly_source_files))
 
 rust_os := target/$(target)/debug/libnoros.a
 
-.PHONY: clean test gdb objdump run iso kernel
+.PHONY: clean test gdb objdump run deploy image kernel
 
 clean:
 	@rm -rf build
@@ -54,20 +61,24 @@ objdump: $(kernel)
 gdb:
 	@RUST_GDB=$(toolchain_prefix)gdb rust-gdb $(kernel) -ex "target remote :1234"
 
+run: $(image)
 ifeq ($(arch), aarch64)
-run: $(kernel)
-	@$(toolchain_prefix)objcopy $(kernel) -O binary build/kernel8.img
 	@qemu-system-$(arch) -machine raspi3b -serial null -serial stdio -kernel $(kernel) -display none -d int -s
 else ifeq ($(arch), riscv64)
-run: $(kernel)
-	@$(toolchain_prefix)objcopy $(kernel) -O binary build/kernel-$(arch).img
-	@qemu-system-$(arch) -machine virt -serial stdio -kernel build/kernel-$(arch).img -display none -s -S
+	@qemu-system-$(arch) -machine virt -serial stdio -kernel build/kernel-$(arch).img -display none -s
 else
-run: $(iso)
-	@qemu-system-$(arch) -monitor stdio -cdrom $(iso) -s
+	@qemu-system-$(arch) -monitor stdio -cdrom $(image) -s
 endif
 
-iso: $(iso)
+ifeq ($(arch), riscv64)
+deploy: $(image)
+	@xfel ddr d1
+	@xfel jtag
+	@xfel write 0x40000000 $(image)
+	@xfel exec 0x40000000
+endif
+
+image: $(image)
 
 kernel:
 	@cargo build --target $(target)
@@ -81,13 +92,18 @@ else
 	@$(toolchain_prefix)as -g -c $< -o $@
 endif
 
-$(iso): $(kernel) $(grub_cfg)
+ifeq ($(arch), x86_64)
+$(image): $(kernel) $(grub_cfg)
 	@$(eval TMP := $(shell mktemp -d))
 	@mkdir -p $(TMP)/boot/grub
 	@cp $(kernel) $(TMP)/boot/kernel.bin
 	@cp $(grub_cfg) $(TMP)/boot/grub
-	@$(grub_mkrescue) -o $(iso) $(TMP)
+	@$(grub_mkrescue) -o $(image) $(TMP)
 	@rm -r $(TMP)
+else
+$(image): $(kernel)
+	@$(toolchain_prefix)objcopy $(kernel) -O binary $(image)
+endif
 
 $(kernel): kernel $(rust_os) $(assembly_object_files) $(linker_script)
 	@$(toolchain_prefix)$(linker) --nmagic -z noexecstack --no-warn-rwx-segment --script=$(linker_script) -o $(kernel) $(assembly_object_files) $(rust_os)
