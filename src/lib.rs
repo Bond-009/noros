@@ -3,7 +3,6 @@
 
 mod arch;
 mod drivers;
-mod lazy;
 mod prelude;
 mod sync;
 

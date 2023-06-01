@@ -1,12 +1,12 @@
 mod gdt;
 mod interrupt;
 
+use core::cell::OnceCell;
 use core::fmt::{Arguments, Write};
 use core::ptr;
 
 use crate::drivers::video::console::vga::{Writer, ScreenChar, Color};
 use crate::sync::mutex::Mutex;
-use crate::lazy::OnceCell;
 use crate::prelude::*;
 
 // TODO: replace once lazy type is stabilized

@@ -1,7 +1,7 @@
 use core::arch::{asm, global_asm};
+use core::cell::OnceCell;
 use core::mem;
 
-use crate::lazy::OnceCell;
 use crate::prelude::*;
 use crate::sync::mutex::Mutex;
 

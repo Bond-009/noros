@@ -1,4 +1,6 @@
-use crate::{sync::mutex::Mutex, lazy::OnceCell};
+use core::cell::OnceCell;
+
+use crate::sync::mutex::Mutex;
 
 // TODO:
 
