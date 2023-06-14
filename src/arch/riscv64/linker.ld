@@ -11,12 +11,22 @@ SECTIONS
         *(.text.kernel_main)
         *(.text*)
     }
-    .rodata : ALIGN(8) { *(.rodata*) }
-    .data : ALIGN(8) { *(.data*) }
+    .rodata : ALIGN(8)
+    {
+        *(.rodata*)
+        *(.srodata*)
+    }
+    .data : ALIGN(8)
+    {
+        *(.sdata*)
+        *(.data*)
+        . = ALIGN(8);
+    }
     .bss (NOLOAD) : ALIGN(8)
     {
         __bss_start = .;
-        *(.bss*);
+        *(.bss*)
+        *(.sbss*)
         . = ALIGN(8);
         __bss_end_exclusive = .;
     }
