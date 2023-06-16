@@ -56,7 +56,7 @@ test:
 	@cargo test --target $(shell rustc -vV | sed -n 's/host: //p')
 
 objdump: $(kernel)
-	@$(toolchain_prefix)objdump --disassemble --demangle $(kernel)
+	@$(toolchain_prefix)objdump --disassemble-all --demangle $(kernel)
 
 gdb:
 	@RUST_GDB=$(toolchain_prefix)gdb rust-gdb $(kernel) -ex "target remote :1234"

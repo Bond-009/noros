@@ -28,10 +28,8 @@ pub extern "C" fn kernel_main() -> ! {
     init_clock();
 
     init_uart();
-    unsafe { WRITER.write_str("Hello from RISCV64 world").unwrap() };
 
-    // This doesn't work yet
-    println!("hello world");
+    println!("Hello World!");
 
     loop { }
 }
