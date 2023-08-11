@@ -67,7 +67,7 @@ ifeq ($(arch), aarch64)
 else ifeq ($(arch), riscv64)
 	@qemu-system-$(arch) -machine virt -serial stdio -kernel build/kernel-$(arch).img -display none -s
 else
-	@qemu-system-$(arch) -monitor stdio -cdrom $(image) -s
+	@qemu-system-$(arch) -serial stdio -cdrom $(image) -s
 endif
 
 ifeq ($(arch), riscv64)

@@ -1,10 +1,12 @@
 mod gdt;
 mod interrupt;
+pub mod io;
 
 use core::cell::OnceCell;
 use core::fmt::{Arguments, Write};
 use core::ptr;
 
+use crate::drivers::serial::ns16550::NS16550;
 use crate::drivers::video::console::vga::{Writer, ScreenChar, Color};
 use crate::sync::mutex::Mutex;
 use crate::prelude::*;
@@ -44,6 +46,9 @@ pub extern "C" fn kernel_main() -> ! {
     interrupt::init_idt();
 
     println!("Interrupts set up");
+
+    let mut w = NS16550::new(0x3F8);
+    w.write_str("Hello COM1!\n").unwrap();
 
     loop {}
 }

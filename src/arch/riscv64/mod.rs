@@ -1,10 +1,10 @@
 mod clk;
 pub mod mmio;
 
-use core::hint;
 use core::arch::asm;
-use core::fmt::{Arguments, Result, Write};
+use core::fmt::{Arguments, Write};
 
+use crate::drivers::serial::ns16550::NS16550;
 use crate::prelude::*;
 
 use self::clk::init_clock;
@@ -21,7 +21,7 @@ pub fn _eprint(args: Arguments) {
 }
 
 // TODO: make thread safe
-static mut WRITER: Uart = Uart::new();
+static mut WRITER: NS16550 = NS16550::new(0x02500000);
 
 #[no_mangle]
 pub extern "C" fn kernel_main() -> ! {
@@ -102,40 +102,6 @@ fn init_uart()
     val &= !0x1f;
     val |= (0x3 << 0) | (0 << 2) | (0x0 << 3);
     write32(addr + 0x0c, val);
-}
-
-#[derive(Debug)]
-struct Uart;
-
-impl Uart {
-    const fn new() -> Self {
-        Self
-    }
-}
-
-impl Write for Uart {
-    fn write_str(&mut self, s: &str) -> Result {
-        for c in s.chars() {
-            if c == '\n' {
-                self.write_char('\r')?;
-            }
-
-            self.write_char(c)?;
-        }
-
-        Ok(())
-    }
-
-    fn write_char(&mut self, c: char) -> Result {
-        let addr = 0x02500000;
-
-        while (read32(addr + 0x7c) & (0x1 << 1)) == 0 {
-            hint::spin_loop();
-        }
-
-        write32(addr + 0x00, c as u32);
-        Ok(())
-    }
 }
 
 fn counter() -> u64 {

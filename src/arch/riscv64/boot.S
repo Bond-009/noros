@@ -4,6 +4,10 @@
 .global _start
 
 _start:
+    # read cpu id, stop slave cores (id != 0)
+    csrr    t0, mhartid
+    bnez    t0, .loop
+
     # disable interrupt
     csrw    mie, zero
 
