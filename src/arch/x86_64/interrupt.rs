@@ -164,7 +164,7 @@ impl InterruptDescriptorTable {
 pub fn init_idt() {
     let mut idt_lock = IDT.lock();
     idt_lock.set(InterruptDescriptorTable::default()).unwrap();
-    let mut idt = idt_lock.get_mut().unwrap();
+    let idt = idt_lock.get_mut().unwrap();
 
     idt.double_fault = IDTEnrty::new(double_fault as u64);
     idt.page_fault = IDTEnrty::new(page_fault as u64);

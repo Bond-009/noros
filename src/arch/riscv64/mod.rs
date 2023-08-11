@@ -26,7 +26,7 @@ static mut WRITER: Uart = Uart::new();
 #[no_mangle]
 pub extern "C" fn kernel_main() -> ! {
     init_clock();
-
+    init_jtag();
     init_uart();
 
     println!("Hello World!");
@@ -34,14 +34,36 @@ pub extern "C" fn kernel_main() -> ! {
     loop { }
 }
 
+fn init_jtag()
+{
+    /* Config GPIOF0, GPIOF1, GPIOF3 and GPIOF5 to JTAG mode */
+    let addr = 0x020000f0 + 0x00;
+    let mut val = read32(addr);
+    val &= !(0xf << ((0 & 0x7) << 2));
+    val |= (0x4 & 0xf) << ((0 & 0x7) << 2);
+    write32(addr, val);
+
+    val = read32(addr);
+    val &= !(0xf << ((1 & 0x7) << 2));
+    val |= (0x4 & 0xf) << ((1 & 0x7) << 2);
+    write32(addr, val);
+
+    val = read32(addr);
+    val &= !(0xf << ((3 & 0x7) << 2));
+    val |= (0x4 & 0xf) << ((3 & 0x7) << 2);
+    write32(addr, val);
+
+    val = read32(addr);
+    val &= !(0xf << ((5 & 0x7) << 2));
+    val |= (0x4 & 0xf) << ((5 & 0x7) << 2);
+    write32(addr, val);
+}
+
 fn init_uart()
 {
-    let mut addr;
-    let mut val;
-
     /* Config GPIOB8 and GPIOB9 to txd0 and rxd0 */
-    addr = 0x02000030 + 0x04;
-    val = read32(addr);
+    let mut addr = 0x02000030 + 0x04;
+    let mut val = read32(addr);
     val &= !(0xf << ((8 & 0x7) << 2));
     val |= (0x6 & 0xf) << ((8 & 0x7) << 2);
     write32(addr, val);
@@ -113,11 +135,6 @@ impl Write for Uart {
 
         write32(addr + 0x00, c as u32);
         Ok(())
-    }
-
-    fn write_fmt(mut self: &mut Self, args: Arguments<'_>) -> Result {
-        // Something goes wrong here...
-        core::fmt::write(&mut self, args)
     }
 }
 

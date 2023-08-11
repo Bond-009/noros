@@ -30,11 +30,11 @@ impl MmioReg {
     }
 
     pub fn as_ptr(&self) -> *const u32 {
-        unsafe { (MMIO_BASE as usize + self.v) as *const _}
+        unsafe { MMIO_BASE.add(self.v) }
     }
 
     pub fn as_mut_ptr(&self) -> *mut u32 {
-        unsafe { (MMIO_BASE as usize + self.v) as *mut _}
+        unsafe { MMIO_BASE.add(self.v) }
     }
 
     pub fn read(&self) -> u32 {

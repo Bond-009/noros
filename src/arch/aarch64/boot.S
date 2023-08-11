@@ -58,7 +58,7 @@ _start:
     ldr     x1, =__bss_end_exclusive
 .zero_bss:
     cmp     x0, x1
-    b.eq   .set_sp
+    b.eq    .set_sp
     stp     xzr, xzr, [x0], #16
     b       .zero_bss
 
@@ -68,7 +68,7 @@ _start:
     mov     sp, x0
 
     // jump to Rust code, should not return
-    b      kernel_main
+    b       kernel_main
     // for failsafe, halt this core too
 .halt:
     wfe
