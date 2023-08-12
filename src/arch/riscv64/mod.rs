@@ -37,7 +37,7 @@ pub extern "C" fn kernel_main() -> ! {
 fn init_jtag()
 {
     /* Config GPIOF0, GPIOF1, GPIOF3 and GPIOF5 to JTAG mode */
-    let addr = 0x020000f0 + 0x00;
+    let addr = 0x020000f0;
     let mut val = read32(addr);
     val &= !(0xf << ((0 & 0x7) << 2));
     val |= (0x4 & 0xf) << ((0 & 0x7) << 2);
@@ -85,23 +85,7 @@ fn init_uart()
     val |= 1 << 16;
     write32(addr, val);
 
-    /* Config uart0 to 115200-8-1-0 */
-    addr = 0x02500000;
-    write32(addr + 0x04, 0x0);
-    write32(addr + 0x08, 0xf7);
-    write32(addr + 0x10, 0x0);
-    val = read32(addr + 0x0c);
-    val |= 1 << 7;
-    write32(addr + 0x0c, val);
-    write32(addr + 0x00, 0xd & 0xff);
-    write32(addr + 0x04, (0xd >> 8) & 0xff);
-    val = read32(addr + 0x0c);
-    val &= !(1 << 7);
-    write32(addr + 0x0c, val);
-    val = read32(addr + 0x0c);
-    val &= !0x1f;
-    val |= (0x3 << 0) | (0 << 2) | (0x0 << 3);
-    write32(addr + 0x0c, val);
+    unsafe { WRITER.init(24000000, 115200); }
 }
 
 fn counter() -> u64 {

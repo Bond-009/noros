@@ -10,8 +10,7 @@ pub fn init() {
     let part_num = (reg >> 4) & 0xFFF;
     unsafe {
         match part_num {
-            0xC07 => MMIO_BASE = 0x3F000000 as *mut _,
-            0xD03 => MMIO_BASE = 0x3F000000 as *mut _,
+            0xC07 | 0xD03 => MMIO_BASE = 0x3F000000 as *mut _,
             0xD08 => MMIO_BASE = 0xFE000000 as *mut _,
             _ => MMIO_BASE = 0x3F000000  as *mut _
         }

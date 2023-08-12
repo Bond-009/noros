@@ -48,6 +48,7 @@ pub extern "C" fn kernel_main() -> ! {
     println!("Interrupts set up");
 
     let mut w = NS16550::new(0x3F8);
+    unsafe { w.init(1843200, 115200); }
     w.write_str("Hello COM1!\n").unwrap();
 
     loop {}
